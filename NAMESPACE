@@ -1,0 +1,12 @@
+import(stats)
+
+export(solutionMEFA)
+export(solutionMCFA)
+export(MorganaEFA)
+export(MorganaCFA)
+export(Morgana)
+export(LargestDoubletsEREC)
+export(DoubletsEREC)
+export(LoseferMorgana)
+export(LoseferMorganaH0)
+export(posit)
