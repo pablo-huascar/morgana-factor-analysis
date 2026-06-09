@@ -6,9 +6,21 @@ Authors@R: person(given = "MORGANA",
                   family = "Developers",
                   role = c("aut", "cre"),
                   email = "noreply@example.com")
-Description: Implements key routines from the MORGANA 3 codebase for
-    exploratory and confirmatory factor analysis with correlated residuals,
-    including EREC-based doublet selection and LOSEFER fit correction.
+Description: Implements the MORGANA (Minimum expected bias Of Residual and
+    loadinG vAlues iN sAmple estimates) methodology for exploratory and
+    confirmatory factor analysis with correlated residuals (doublets). The
+    package provides EREC-based doublet detection (LargestDoubletsEREC,
+    DoubletsEREC), Parallel Analysis reference values for EREC thresholds
+    (ParallelAnalysisEREC), the full unrestricted MORGANA estimation procedure
+    (Morgana, MorganaEFA, MorganaCFA), and LOSEFER empirical fit-index
+    correction (LoseferMorgana, LoseferMorganaH0). High-level wrappers
+    solutionMEFA() and solutionMCFA() integrate all steps into a single call.
+    The methodology is described in Ferrando, Hernandez-Dorado & Lorenzo-Seva
+    (2022) <doi:10.1080/10705511.2021.2004543> and Lorenzo-Seva (2025)
+    <doi:10.1080/03610918.2025.2453473>. These methods are also implemented in
+    the program FACTOR (https://psico.fcep.urv.cat/utilitats/factor/); note
+    that this R package was developed independently and no formal comparison
+    between the outputs of the two implementations has been conducted.
 License: GPL-3
 Encoding: UTF-8
 Depends: R (>= 4.1.0)

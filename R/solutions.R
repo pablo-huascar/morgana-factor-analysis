@@ -5,7 +5,8 @@ solutionMEFA <- function(database,
                          conver = 0.0001,
                          maxiter = 500,
                          display = 1,
-                         montecarlo = 5000) {
+                         montecarlo = 5000,
+                         pa_reps = 500) {
   Z <- as.matrix(database)
   if (!is.numeric(Z)) {
     stop("`database` must be a numeric matrix or data.frame.")
@@ -28,13 +29,20 @@ solutionMEFA <- function(database,
     display = display
   )
 
+  pa <- if (pa_reps > 0) {
+    ParallelAnalysisEREC(Z, r, cor = cor, pa_reps = pa_reps)
+  } else {
+    NULL
+  }
+
   list(
     loadings = A,
     residual_covariance = extracted$RESCOV,
     residual_correlation = RESCOR,
     doublets = doubletsEFA,
     fit = fit,
-    h0 = h0
+    h0 = h0,
+    pa = pa
   )
 }
 

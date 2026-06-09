@@ -1,0 +1,7 @@
+LargestDoubletsEREC     EREC-Based Detection and Evaluation of Doublets
+LoseferMorgana          LOSEFER Fit Correction for MORGANA Solutions
+MorganaEFA              Core MORGANA Estimation Routines
+morganafa-package       MORGANA Factor Analysis with Correlated
+                        Residuals
+posit                   Orient Factor Loadings to Positive Direction
+solutionMEFA            High-Level MORGANA Workflows for EFA and CFA
