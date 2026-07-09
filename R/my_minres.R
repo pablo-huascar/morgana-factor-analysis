@@ -1,63 +1,58 @@
-#############################
-###                       ###
-###      MINRES           ### 
-###                       ###
-#############################
-## MINRES EXTRACTION BY Zegers & ten Berge (1983)
-# C -> direct, covariance or correlation matrix
-# q -> number of components
+# MINRES extraction by Zegers & ten Berge (1983), row-wise updates.
+#
+# C    -> covariance or correlation matrix
+# q    -> number of factors
 # conv -> convergence value
-# N -> Number of subjects
-# A -> Loadings
-# Um -> Index of fit
-# m <- number of items 
-###############################################################################
-my_minres <- function(C, q, conv, N){
-  
-  # r number of factors
-  A <- pcaR(C,q)$A
-  
-  n <- dim(A)[1]
-  m <- dim(A)[2]
-  
-  Co <- C-diag(diag(C))
-  
-  g1 <- t(Co - (A%*%t(A)) - diag(diag(A%*%t(A))))
-  g2 <- Co - (A%*%t(A)) - diag(diag(A%*%t(A)))
-  g <- sum(diag(g1 %*% g2))
-  gold = g*2
-  
-  iter <- 0 
-  
-  while(abs(gold - g) > conv){
-    for(i in 1:n){
+# N    -> number of subjects
+#
+# `heywood = TRUE` applies the Ten Berge & Nevels (1977) constrained update
+# whenever a row communality would exceed 1 (Heywood case).
+#' @noRd
+.minres_engine <- function(C, q, conv, N, heywood) {
+  A <- pcaR(C, q)$A
+
+  n <- nrow(A)
+  Co <- C - diag(diag(C))
+
+  loss <- function(A) {
+    AA <- A %*% t(A)
+    ssq(Co - AA - diag(diag(AA)))
+  }
+
+  g <- loss(A)
+  gold <- g * 2
+  iter <- 0
+
+  while (abs(gold - g) > conv) {
+    for (i in 1:n) {
       Ai <- A
-      for (j in 1: m){
-        Ai[i,j] <- 0.0
+      Ai[i, ] <- 0
+      ci <- Co[, i, drop = FALSE]
+      ai <- solve(crossprod(Ai), crossprod(Ai, ci))
+
+      if (heywood && sum(ai^2) > 1) {
+        ai <- BERGE(Ai, ci)
       }
 
-      ci <- as.matrix(c(Co[,i]), ncol=1)
-      ai <- (solve(t(Ai)%*% Ai))%*%(t(Ai)%*%(ci))
-    
-     
-      ai <- (solve(t(Ai)%*% Ai))%*%(t(Ai)%*%(ci))
-      for(j in 1:m){
-        A[i,j] <- ai[j,]
-      }
+      A[i, ] <- ai
     }
     gold <- g
-    g1 <- t(Co - (A%*%t(A)) - diag(diag(A%*%t(A))))
-    g2 <- Co - (A%*%t(A)) - diag(diag(A%*%t(A)))
-    g <- sum(diag(g1 %*% g2))
+    g <- loss(A)
     iter <- iter + 1
-    if(iter > 1000) {
+    if (iter > 1000) {
       gold <- g
     }
   }
-  Re <- (A%*%t(A))+ diag(diag(C)) - diag(diag(A%*%t(A)))
-  Um = (N-1)*(log(det(Re))-log(det(C)))
-  if(Um < 0){
+
+  Re <- (A %*% t(A)) + diag(diag(C)) - diag(diag(A %*% t(A)))
+  Um <- (N - 1) * (log(det(Re)) - log(det(C)))
+  if (Um < 0) {
     Um <- 0
   }
-  return(list("Loadings"=A, "Index of Fit"=Um))
+  list("Loadings" = A, "Index of Fit" = Um)
+}
+
+#' @noRd
+my_minres <- function(C, q, conv, N) {
+  .minres_engine(C, q, conv, N, heywood = FALSE)
 }

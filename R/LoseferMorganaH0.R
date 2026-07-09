@@ -1,126 +1,90 @@
-
-
-
-
-###########################################
-###                                     ###
-###           LoseferMorganaH0          ### 
-###                                     ###
-###########################################
-
-
-
-# empirical distribution for H0
-# 
-# FINAL TRANSFORMTION of a value xi taking the parameters returned by the function
-# 
-# STEP0: calculate degrees of freedom
-# 
-# STEP1: log
-# 
-# STEP2: z
-# 
-# STEP3:  normal
-# 
-# STEP4:  chiq
-# 
-# 
-
+#' Empirical H0 distribution for the LOSEFER correction
+#'
+#' Simulates the null distribution of the chi-square statistic under the
+#' fitted MORGANA model (population without sampling error) via Monte Carlo,
+#' and returns the parameters used by [LoseferMorgana()] to correct the
+#' observed statistic.
+#'
+#' This is a low-level function kept close to the original code released by
+#' the authors of the method; most users should call [solutionMEFA()] or
+#' [solutionMCFA()] instead.
+#'
+#' @param A Loading matrix (m x r), unrotated.
+#' @param RESCOR Residual correlation matrix returned by the MORGANA fit.
+#' @param doblets Two-column matrix with the freed doublet pairs.
+#' @param N Number of observations.
+#' @param montecarlo Number of Monte Carlo replications (e.g. 5000).
+#'
+#' @return A list with the location (`v`), scale (`vv`), normalising
+#'   coefficients (`a_n`, `b1_n`, `b2_n`) and Fleishman coefficients
+#'   (`a_f`, `b_f`, `c_f`, `d_f`) of the empirical H0 distribution.
+#'
+#' @inherit LargestDoubletsEREC references
+#' @seealso [LoseferMorgana()], [solutionMEFA()]
+#' @export
 LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo) {
   conver <- 0.0001
-  
+
   m <- nrow(A)
   r <- ncol(A)
+  doblets <- as.matrix(doblets)
   nd <- nrow(doblets)
-  
+
+  # Model-implied population correlation matrix
   AA <- A %*% t(A)
   PSI2 <- diag(m) - diag(diag(AA))
   PSI <- sqrt(PSI2)
   RESCORZ <- RESCOR - diag(diag(RESCOR))
-  Rr <- (AA + PSI %*% RESCORZ %*% PSI)
+  Rr <- AA + PSI %*% RESCORZ %*% PSI
   Rr <- Rr - diag(diag(Rr)) + diag(m)
-  df <- 1/2 * ((m - r) * (m - r + 1)) - m - nd
-  
-  EV <- eigen(Rr)
-  U <- EV$vectors
-  V <- diag(EV$values)
-  if (min(diag(V)) < 0.001) {
-    Rr <- Rr + diag(rep(N, m))
+  df <- ((m - r) * (m - r + 1)) / 2 - m - nd
+
+  # Ensure positive definiteness before the Cholesky factorisation
+  min_ev <- min(eigen(Rr, symmetric = TRUE, only.values = TRUE)$values)
+  if (min_ev < 0.001) {
+    Rr <- Rr + diag(rep(0.001 - min_ev, m))
   }
-  
-  NP <- 100000
-  Zi <- matrix(rnorm(NP * m), ncol = m)
   L <- chol(Rr)
-  XP <- Zi %*% L
- 
-   
-  DCHI <- zeros(montecarlo,1)
+
+  # Large pool of null observations, sub-sampled at each replication
+  NP <- 100000
+  XP <- matrix(rnorm(NP * m), ncol = m) %*% L
+
+  DCHI <- numeric(montecarlo)
   h <- 1
-  while (h < montecarlo) {
-    J <- order(runif(NP))
-    Xi <- XP[J[1:N], ]
+  while (h <= montecarlo) {
+    Xi <- XP[sample.int(NP, N), ]
     Ri <- cor(Xi)
-    
-    result <- fufa1(Xi, r, doblets, conver, 2)
+
+    result <- fufa1(Xi, r, doblets, conver, 2, R = Ri)
     Ai <- result$L
-    RESCOVi <- result$RESCOV
     RESCORi <- result$RESCOR
-    
+
     AAi <- Ai %*% t(Ai)
-    PSI2 <- eye(m) - diag(diag(AAi))
-    PSI <- sqrt(abs(PSI2))
-    RESCORZi <- RESCORi - eye(m)
-    RESi <- Ri - (AAi + PSI %*% RESCORZi %*% PSI)
-    sum <- 0
-    for(i in 1:(m-1)){
-      for(j in (1+i):m){
-        sum <- sum+RESi[i,j]*RESi[i,j]
-      }
-    }
-   
-    
-    Fi <- sum
-    c2i <- Fi * (N - 1)
-    
+    PSIi <- sqrt(abs(eye(m) - diag(diag(AAi))))
+    RESi <- Ri - (AAi + PSIi %*% (RESCORi - eye(m)) %*% PSIi)
+
+    c2i <- sum(RESi[upper.tri(RESi)]^2) * (N - 1)
     if (c2i > 0.01) {
-      DCHI[h,] <- c2i
+      DCHI[h] <- c2i
       h <- h + 1
     }
   }
-  
+
+  # Cube-root transform, trimming extreme replicates
   md <- median(DCHI)
   sx <- sd(DCHI)
-  sum <- 0
-  sumq <- 0
-  n <- 0
-  h <- 1
-  x <- c()
-  xi <- 0
-  while (h < montecarlo) {
-    if (DCHI[h,] < (md + 5.5 * sx)) {
-      xi <- DCHI[h,] ^ (1/3)
-      sum <- sum+xi
-      sumq <- sumq +xi*xi
-      x <- c(x, xi)
-      n <- n + 1
-    }
-    h <- h + 1
-  }
-  res <- Trans2Normal(x)
-  v <- res$md
-  vv <- res$sx
-  a_n <- res$a
-  b1_n <- res$b1
-  b2_n <- res$b2
-  
-  skew <- sqrt(8/df)
-  kurt <- 12/df
-  coeffs <- fit_fleishman_from_sk(skew, kurt)
-  a_f <- -coeffs$B
-  b_f <- coeffs$A
-  c_f <- coeffs$B
-  d_f <- coeffs$C
-  
-  return(list(v = v, vv = vv, a_n = a_n, b1_n = b1_n, b2_n = b2_n, a_f = a_f, b_f = b_f, c_f = c_f, d_f = d_f))
-}
+  x <- DCHI[DCHI < (md + 5.5 * sx)]^(1 / 3)
 
+  res <- Trans2Normal(x)
+
+  skew <- sqrt(8 / df)
+  kurt <- 12 / df
+  coeffs <- fit_fleishman_from_sk(skew, kurt)
+
+  list(
+    v = res$md, vv = res$sx,
+    a_n = res$a, b1_n = res$b1, b2_n = res$b2,
+    a_f = -coeffs$B, b_f = coeffs$A, c_f = coeffs$B, d_f = coeffs$C
+  )
+}

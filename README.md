@@ -1,156 +1,187 @@
 # morganafa
 
-Pacote R que implementa o método **MORGANA** (*Minimum expected bias Of Residual and loadinG vAlues iN sAmple estimates*) para análise fatorial exploratória e confirmatória com resíduos correlacionados.
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/pablo-huascar/morgana-factor-analysis/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/pablo-huascar/morgana-factor-analysis/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
+Pacote R que implementa o método **MORGANA** (*Minimum expected bias Of Residual and loadinG vAlues iN sAmple estimates*) para análise fatorial exploratória e confirmatória com resíduos correlacionados (*doublets*), incluindo a detecção de doublets pelo índice **EREC**, limiares de referência por Análise Paralela e índices de ajuste corrigidos pelo procedimento **LOSEFER**.
+
+*An unofficial R implementation of the MORGANA method for factor analysis with correlated residuals (doublets), proposed by Ferrando, Hernández-Dorado & Lorenzo-Seva. See the disclaimer below.*
 
 ---
 
-## Base metodológica
+## ⚠️ Aviso importante / Important disclaimer
 
-O pacote é uma implementação independente em R das propostas descritas nos seguintes artigos:
+**PT:** A ideia e o desenvolvimento originais dos métodos MORGANA, EREC e LOSEFER são de **Pere J. Ferrando, Ana Hernández-Dorado e Urbano Lorenzo-Seva** (Universitat Rovira i Virgili). Este pacote é apenas uma tentativa independente de tornar a proposta mais acessível como pacote de R, **sem garantias de qualquer natureza**. Os autores dos artigos **não estão envolvidos neste projeto e não têm qualquer responsabilidade sobre ele**.
 
-- **Ferrando, P. J., Hernandez-Dorado, A., & Lorenzo-Seva, U. (2022).** Detecting correlated residuals in exploratory factor analysis: New proposals and a comparison of procedures. *Structural Equation Modeling: A Multidisciplinary Journal*, 29(4), 630–638. <https://doi.org/10.1080/10705511.2021.2004543>
+Os métodos estão oficialmente implementados no programa [FACTOR](https://psico.fcep.urv.cat/utilitats/factor/), desenvolvido e mantido pelos autores, que também disponibilizaram um código R de referência. **Ainda não foram realizados testes formais comparando os resultados deste pacote com a implementação oficial do FACTOR nem com o código R disponibilizado pelos autores.** Diferenças numéricas podem existir por escolhas de implementação (tolerâncias de convergência, geração de números aleatórios, correções aplicadas — veja [Diferenças em relação ao código de referência](#diferenças-em-relação-ao-código-de-referência-dos-autores)). Sempre que possível, valide resultados importantes com o programa FACTOR.
 
-- **Lorenzo-Seva, U. (2025).** Mild-restricted confirmatory factor analysis: a new approach to assessing population factor models. *Communications in Statistics – Simulation and Computation*. <https://doi.org/10.1080/03610918.2025.2453473>
-
-Os mesmos métodos estão implementados no programa **FACTOR** (disponível gratuitamente em <https://psico.fcep.urv.cat/utilitats/factor/>), desenvolvido e mantido pelos autores dos artigos na Universitat Rovira i Virgili.
-
-> **Aviso importante:** Este pacote R foi desenvolvido de forma **independente** do programa FACTOR e **não foi submetido a uma comparação formal** entre os resultados produzidos por ambas as implementações. Diferenças numéricas podem existir em virtude de escolhas de implementação distintas (tolerâncias de convergência, geração de números aleatórios, ordem de operações). Recomenda-se cautela ao comparar os resultados e, sempre que possível, validar os achados com o programa FACTOR ou com dados simulados de referência.
-
----
-
-## Visão geral do método
-
-Na Análise Fatorial Exploratória (EFA) clássica, os resíduos são assumidos não-correlacionados. Na prática — especialmente em análises de itens — podem existir pares de variáveis com resíduo correlacionado (*doublets*), o que, se ignorado, produz cargas fatoriais e resíduos enviesados.
-
-O MORGANA propõe um procedimento ULS em três estágios para estimar os doublets mais substanciais e corrigi-los:
-
-1. **Ajuste do conjunto núcleo:** para cada par candidato (i, j), o modelo é ajustado nas m−2 variáveis restantes (*core set*) via MINRES.  
-2. **Análise de extensão:** as cargas de i e j são estimadas por extensão a partir do núcleo ajustado.  
-3. **Estimação dos resíduos:** a correlação residual do par é estimada via Ψ̂⁻¹(R − Λ̂Λ̂ʹ)Ψ̂⁻¹.
-
-O índice resultante **EREC** (*Expected REsidual Correlation direct Change*, EPC1 no artigo) quantifica a correlação residual estimada para cada par. Os pares com maiores valores de EREC, limitados pelo *Ledermann bound*, são liberados como doublets antes do ajuste final do modelo com a função `Morgana()`.
-
-Os índices de ajuste (RMSEA, CFI, NNFI/TL) são corrigidos pelo procedimento **LOSEFER** (*LOw-Sampling-Error Fit Empirical-Reference*), que usa simulação de Monte Carlo para aproximar a distribuição empírica da estatística qui-quadrado.
+**EN:** The MORGANA, EREC and LOSEFER methods were conceived and developed by **Pere J. Ferrando, Ana Hernández-Dorado and Urbano Lorenzo-Seva** (Universitat Rovira i Virgili). This package is an independent attempt to make their proposal more accessible as an R package, **provided as is, with no warranty of any kind**. The original authors **are not involved in this project and bear no responsibility for it**. The methods are officially implemented in the [FACTOR](https://psico.fcep.urv.cat/utilitats/factor/) program; **no formal comparison between this package and the official implementations has been conducted yet.**
 
 ---
 
 ## Instalação
 
-```r
-# A partir do código-fonte local (diretório do projeto):
-install.packages(".", repos = NULL, type = "source")
+O pacote pode ser instalado diretamente do GitHub:
 
-# Ou via R CMD no terminal:
-# R CMD INSTALL .
+```r
+# install.packages("pak")
+pak::pak("pablo-huascar/morgana-factor-analysis")
+
+# ou, com remotes:
+# install.packages("remotes")
+remotes::install_github("pablo-huascar/morgana-factor-analysis")
 ```
 
----
+## Base metodológica
 
-## Funções principais
+- **Ferrando, P. J., Hernández-Dorado, A., & Lorenzo-Seva, U. (2022).** Detecting correlated residuals in exploratory factor analysis: New proposals and a comparison of procedures. *Structural Equation Modeling: A Multidisciplinary Journal, 29*(4), 630–638. <https://doi.org/10.1080/10705511.2021.2004543>
+- **Lorenzo-Seva, U. (2025).** Mild-restricted confirmatory factor analysis: A new approach to assessing population factor models. *Communications in Statistics – Simulation and Computation*. <https://doi.org/10.1080/03610918.2025.2453473>
 
-| Função | Descrição |
-|---|---|
-| `solutionMEFA()` | Fluxo completo de EFA (detecção automática de doublets + MORGANA + LOSEFER + PA) |
-| `solutionMCFA()` | Fluxo completo de CFA (doublets fornecidos pelo usuário + MORGANA + LOSEFER) |
-| `LargestDoubletsEREC()` | Identifica e ordena os maiores doublets por EREC; aplica restrição de Ledermann |
-| `DoubletsEREC()` | Calcula EREC para pares explicitamente especificados pelo usuário |
-| `ParallelAnalysisEREC()` | Gera limiares de referência para EREC via Análise Paralela (Monte Carlo) |
-| `MorganaEFA()` | Extração MORGANA em modo exploratório |
-| `MorganaCFA()` | Extração MORGANA em modo confirmatório |
-| `Morgana()` | Rotina central de estimação (procedimento ULS em três estágios) |
-| `LoseferMorgana()` | Calcula RMSEA, CFI e NNFI corrigidos pelo LOSEFER |
-| `LoseferMorganaH0()` | Estima parâmetros da distribuição H0 por Monte Carlo |
+### Visão geral do método
 
----
+Na análise fatorial clássica, assume-se que os resíduos são não correlacionados. Em análises de itens, porém, é comum haver pares de itens com resíduos correlacionados (*doublets*) — por redundância de conteúdo, por exemplo — o que, se ignorado, enviesa cargas e resíduos.
+
+O MORGANA estima os doublets mais substanciais em três estágios: (1) para cada par candidato, o modelo é ajustado nas m−2 variáveis restantes (*core set*) via MINRES; (2) as cargas do par são estimadas por análise de extensão; (3) a correlação residual do par é estimada a partir da matriz residual reescalonada. O índice resultante, **EREC** (*Expected REsidual Correlation direct change*; EPC1 no artigo), quantifica a correlação residual esperada de cada par. Os maiores EREC — limitados pelo *Ledermann bound* — são liberados no ajuste final. Os índices de ajuste (RMSEA, CFI, NNFI/TLI) são corrigidos pelo procedimento **LOSEFER**, que aproxima por Monte Carlo a distribuição empírica do qui-quadrado sob H0.
 
 ## Uso rápido
 
-### EFA com detecção automática de doublets e Análise Paralela
+### EFA com detecção automática de doublets
 
 ```r
 library(morganafa)
 
-database <- as.matrix(
-  read.table(system.file("extdata", "database.dat", package = "morganafa"))
+database <- as.matrix(read.table(
+  system.file("extdata", "database.dat", package = "morganafa")
+))
+
+set.seed(123)
+efa <- solutionMEFA(
+  database,
+  r          = 2,          # número de fatores
+  cor        = "pearson",  # "pearson", "polychoric" ou "covariance"
+  rotate     = "oblimin",  # rotação para interpretação ("varimax", "none")
+  montecarlo = 5000,       # réplicas para o H0 do LOSEFER
+  pa_reps    = 500         # réplicas da Análise Paralela (0 desativa)
 )
 
-# EFA completa: EREC + MORGANA + LOSEFER + Parallel Analysis (500 réplicas)
-res_efa <- solutionMEFA(
-  database    = database,
-  r           = 2,
-  cor         = 2,       # 1 = covariância, 2 = Pearson, 3 = policórica
-  montecarlo  = 5000,    # réplicas para LOSEFER H0
-  pa_reps     = 500      # réplicas para PA dos limiares EREC; use 0 para desativar
-)
-
-# Doublets detectados e seus valores EREC
-res_efa$doublets
-
-# Limiares da Análise Paralela por posição de ranque (percentil 95)
-res_efa$pa$pa_thresholds
-
-# Doublets que superam o limiar de chance
-res_efa$pa$significant
-
-# Índices de ajuste
-res_efa$fit$RMSEA
-res_efa$fit$CFI
-res_efa$fit$TL
+efa            # impressão amigável de toda a solução
+efa$loadings   # tibble: cargas rotacionadas, h2 e u2 por item
+efa$doublets   # tibble: doublets, EREC, correlação residual, limiar da PA
+efa$fit        # tibble: qui-quadrado LOSEFER, RMSEA, CFI, NNFI/TLI
+efa$pa         # resultado completo da Análise Paralela
 ```
 
-### CFA com doublets fornecidos pelo usuário
+### Vinculando itens ao seu texto
+
+Os nomes das colunas dos dados são usados como nomes dos itens em todas as
+saídas. Opcionalmente, é possível fornecer o texto dos itens:
 
 ```r
-doublets <- matrix(c(1, 2,
-                     6, 7), ncol = 2, byrow = TRUE)
+rotulos <- c(
+  V1 = "Me sinto nervoso ultimamente",
+  V2 = "Tenho dificuldade para relaxar",
+  V6 = "Sinto-me triste sem motivo",
+  V7 = "Perdi o interesse pelas coisas"
+)
 
-res_cfa <- solutionMCFA(
-  database   = database,
-  r          = 2,
-  doublets   = doublets,
-  cor        = 2,
+efa <- solutionMEFA(database, r = 2, item_labels = rotulos, pa_reps = 0)
+efa$doublets
+#> # A tibble: 4 × 9
+#>    rank item_a item_b label_a            label_b            erec residual_r ...
+#> 1     1 V1     V2     Me sinto nervoso…  Tenho dificuldade… 0.501      0.511
+#> 2     2 V6     V7     Sinto-me triste…   Perdi o interesse… 0.493      0.499
+```
+
+### CFA (mild-restricted) com doublets definidos pelo usuário
+
+```r
+set.seed(123)
+cfa <- solutionMCFA(
+  database,
+  r        = 2,
+  doublets = rbind(c("V1", "V2"),   # aceita nomes de itens…
+                   c(6, 7)),        # …ou índices
   montecarlo = 5000
 )
-
-res_cfa$fit$RMSEA
+cfa$fit
 ```
 
-### Análise Paralela para EREC de forma independente
+### Análise Paralela para o EREC de forma independente
 
 ```r
-pa <- ParallelAnalysisEREC(
-  X          = database,
-  r          = 2,
-  cor        = 2,
-  pa_reps    = 500,
-  percentile = 95        # percentil de referência (padrão: 95)
-)
-
-# Doublets observados com limiares e flags de significância
-pa$doublets
-pa$pa_thresholds
-pa$significant
+set.seed(123)
+pa <- ParallelAnalysisEREC(database, r = 2, pa_reps = 500, percentile = 95)
+pa
 ```
 
----
+Um doublet é considerado *significativo* quando seu EREC observado supera o
+limiar da Análise Paralela na mesma posição de ranque (seção *"Reference
+values and upper bounds"* de Ferrando et al., 2022).
 
-## Notas sobre a Análise Paralela (ParallelAnalysisEREC)
+> **Nota de desempenho:** cada réplica da PA exige m·(m−1)/2 ajustes de
+> modelo. Para muitos itens (m > 20), considere `pa_reps = 100` em
+> explorações iniciais. Correlações policóricas também elevam bastante o
+> custo computacional.
 
-O procedimento de Análise Paralela para o índice EREC é descrito na seção *"Reference values and upper bounds"* de Ferrando et al. (2022). Sua lógica é:
+## Funções
 
-1. Ajustar o modelo sem doublets (apenas fatores comuns) para obter a matriz de correlações nula.  
-2. Gerar `pa_reps` amostras de tamanho N a partir dessa população nula.  
-3. Para cada réplica, calcular os `nd` maiores valores de EREC.  
-4. O limiar para a posição de ranque k é o percentil escolhido (padrão: 95) da distribuição simulada de EREC na posição k.
+| Função | Descrição |
+|---|---|
+| `solutionMEFA()` | Fluxo completo de EFA (EREC + MORGANA + LOSEFER + PA), com saídas em tibbles |
+| `solutionMCFA()` | Fluxo completo de CFA *mild-restricted* (doublets do usuário) |
+| `LargestDoubletsEREC()` | Identifica e ordena os maiores doublets pelo EREC |
+| `DoubletsEREC()` | Calcula o EREC para pares especificados pelo usuário |
+| `ParallelAnalysisEREC()` | Limiares de referência para o EREC via Análise Paralela |
+| `MorganaEFA()` / `MorganaCFA()` / `Morgana()` | Rotinas de extração de nível mais baixo |
+| `LoseferMorgana()` / `LoseferMorganaH0()` | Correção LOSEFER dos índices de ajuste |
+| `posit()` | Reflexão de sinais das colunas de uma matriz de cargas |
 
-Um doublet é considerado *significativo* quando seu EREC observado supera o limiar da Análise Paralela na mesma posição de ranque.
+As funções de nível mais baixo mantêm a estrutura do código de referência dos
+autores e são exportadas para permitir fluxos customizados; para uso comum,
+prefira `solutionMEFA()`/`solutionMCFA()`.
 
-> **Nota de desempenho:** cada réplica exige m*(m−1)/2 ajustes de modelo. Para matrizes grandes (m > 20), `pa_reps = 500` pode ser computacionalmente intensivo. Considere usar `pa_reps = 100` em explorações iniciais.
+## Diferenças em relação ao código de referência dos autores
 
----
+Este pacote partiu do código R de referência disponibilizado pelos autores.
+Na revisão, alguns problemas aparentes de tradução do MATLAB original foram
+corrigidos — o que significa que **os resultados deste pacote podem diferir
+dos do código R de referência** (mais um motivo para a validação formal
+pendente contra o programa FACTOR):
 
-## Referências
+1. **`fufa1()` (simulação H0 do LOSEFER):** o `switch()` numérico só
+   funcionava para correlações de Pearson; e os resíduos eram padronizados
+   por √h² (comunalidade) em vez de √(1−h²) (unicidade). A padronização pela
+   unicidade é a consistente com o estimador usado nos dados reais
+   (`Morgana()`), e altera levemente o qui-quadrado ajustado.
+2. **`DoubletsEREC()`:** o bloco que acumula as unicidades para o
+   reescalonamento do EREC ficava fora do laço interno de pares (diferente de
+   `LargestDoubletsEREC()`); com a correção, o EREC de um mesmo par é idêntico
+   nos fluxos exploratório e confirmatório.
+3. **`BERGE()` (caso Heywood no MINRES):** erros de indexação
+   (`1:m-q` em vez de `1:(m-q)`) e de produto matricial faziam a função
+   falhar com mais de um fator; foi reescrita resolvendo as mesmas equações
+   estacionárias de Ten Berge & Nevels (1977).
+4. **`LoseferMorganaH0()`:** laços `while` descartavam a última réplica de
+   Monte Carlo; matriz quase singular era "corrigida" somando N (o tamanho
+   amostral!) à diagonal — agora o menor autovalor é elevado a 0,001.
+5. **`posit()`:** a regra de reflexão de sinais continha código morto; agora
+   reflete colunas com soma de cargas negativa.
 
-Ferrando, P. J., Hernandez-Dorado, A., & Lorenzo-Seva, U. (2022). Detecting correlated residuals in exploratory factor analysis: New proposals and a comparison of procedures. *Structural Equation Modeling: A Multidisciplinary Journal*, 29(4), 630–638. <https://doi.org/10.1080/10705511.2021.2004543>
+As partes determinísticas do algoritmo (detecção EREC, extração MORGANA,
+cargas) reproduzem o código de referência com precisão de máquina (≈1e−16)
+nos dados de exemplo.
 
-Lorenzo-Seva, U. (2025). Mild-restricted confirmatory factor analysis: a new approach to assessing population factor models. *Communications in Statistics – Simulation and Computation*. <https://doi.org/10.1080/03610918.2025.2453473>
+## Licença
+
+GPL (>= 3). Veja o arquivo [LICENSE.md](LICENSE.md).
+
+## Como citar
+
+Se você usar este pacote, cite **os artigos originais dos autores do método**
+(referências acima). Para citar o pacote em si:
+
+> Aragão Pinheiro, F. P. H. (2026). *morganafa: MORGANA factor analysis with
+> correlated residuals* (implementação não oficial em R). R package version 0.1.0.
+> <https://github.com/pablo-huascar/morgana-factor-analysis>

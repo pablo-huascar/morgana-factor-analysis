@@ -2,30 +2,36 @@ Package: morganafa
 Type: Package
 Title: MORGANA Factor Analysis with Correlated Residuals
 Version: 0.1.0
-Authors@R: person(given = "MORGANA",
-                  family = "Developers",
+Authors@R: person(given = "Francisco Pablo Huascar",
+                  family = "Aragão Pinheiro",
                   role = c("aut", "cre"),
-                  email = "noreply@example.com")
-Description: Implements the MORGANA (Minimum expected bias Of Residual and
-    loadinG vAlues iN sAmple estimates) methodology for exploratory and
-    confirmatory factor analysis with correlated residuals (doublets). The
-    package provides EREC-based doublet detection (LargestDoubletsEREC,
-    DoubletsEREC), Parallel Analysis reference values for EREC thresholds
-    (ParallelAnalysisEREC), the full unrestricted MORGANA estimation procedure
-    (Morgana, MorganaEFA, MorganaCFA), and LOSEFER empirical fit-index
-    correction (LoseferMorgana, LoseferMorganaH0). High-level wrappers
-    solutionMEFA() and solutionMCFA() integrate all steps into a single call.
-    The methodology is described in Ferrando, Hernandez-Dorado & Lorenzo-Seva
+                  email = "pablohuascar@gmail.com")
+Description: Unofficial implementation of the MORGANA (Minimum expected bias
+    Of Residual and loadinG vAlues iN sAmple estimates) methodology for
+    exploratory and confirmatory factor analysis with correlated residuals
+    (doublets), as proposed by Ferrando, Hernandez-Dorado and Lorenzo-Seva
     (2022) <doi:10.1080/10705511.2021.2004543> and Lorenzo-Seva (2025)
-    <doi:10.1080/03610918.2025.2453473>. These methods are also implemented in
-    the program FACTOR (https://psico.fcep.urv.cat/utilitats/factor/); note
-    that this R package was developed independently and no formal comparison
-    between the outputs of the two implementations has been conducted.
-License: GPL-3
+    <doi:10.1080/03610918.2025.2453473>. Provides EREC-based doublet
+    detection, Parallel Analysis reference values for EREC thresholds, the
+    full MORGANA estimation procedure, and LOSEFER empirical fit-index
+    correction, with high-level wrappers solutionMEFA() and solutionMCFA()
+    that integrate all steps and return tidy, labelled outputs. The original
+    authors are not involved in this package; the methods are officially
+    implemented in their FACTOR program
+    (<https://psico.fcep.urv.cat/utilitats/factor/>), and no formal
+    comparison between the two implementations has been conducted yet.
+License: GPL (>= 3)
+URL: https://github.com/pablo-huascar/morgana-factor-analysis
+BugReports: https://github.com/pablo-huascar/morgana-factor-analysis/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
+    GPArotation,
     psych,
-    stats
+    stats,
+    tibble
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3

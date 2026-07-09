@@ -1,39 +1,38 @@
+#' MORGANA extraction in confirmatory (mild-restricted) mode
+#'
+#' Computes EREC values for the doublet pairs supplied by the user
+#' ([DoubletsEREC()]) and then fits the MORGANA model with those doublets
+#' freed ([Morgana()]).
+#'
+#' This is a low-level function kept close to the original code released by
+#' the authors of the method; most users should call [solutionMCFA()]
+#' instead.
+#'
+#' @inheritParams MorganaEFA
+#' @param doblets Two-column matrix of variable index pairs whose residual
+#'   correlations should be freed.
+#'
+#' @return A list with:
+#'   \item{doublets}{Matrix (`nd` x 3) of doublets (`P1`, `P2`, `EREC`).}
+#'   \item{A}{Loading matrix (m x r), unrotated.}
+#'   \item{RESCOV}{Residual variance/covariance matrix.}
+#'   \item{RESCOR}{Residual correlation matrix.}
+#'
+#' @references
+#' Lorenzo-Seva, U. (2025). Mild-restricted confirmatory factor analysis: a
+#' new approach to assessing population factor models. *Communications in
+#' Statistics - Simulation and Computation*.
+#' \doi{10.1080/03610918.2025.2453473}
+#'
+#' @seealso [solutionMCFA()], [MorganaEFA()]
+#' @export
+MorganaCFA <- function(X, r, conver, maxiter, cor, doblets, R = NULL) {
+  X <- as.matrix(X)
+  cor_code <- .morgana_cor_code(cor)
+  R <- .morgana_dispersion(X, cor_code, R)
 
-# MORGANA CFA
-# 
-# 
-# 
-# IN: 
-#   X        Matrix of observed data (N x m)
-#   r        Number of factors to be extrated
-#   conver   Convergence value for MINRES
-#   maxiter  Maximun iterations
-#   cor      1 -> covariance
-#            2 -> pearson
-#            3 -> polychoric
-# 
-# OUT:
-#   A        Loading matrix
-#   RESCOV   Variance/Covariance Residuals
-#   RESCOR   Correlation residuals
-#   doblets  Matrix of doblets 
+  doublets <- DoubletsEREC(X, r, cor_code, doblets, R = R)$doublets
+  res <- Morgana(X, r, conver, maxiter, cor_code, doublets, R = R)
 
-
-MorganaCFA <- function(X, r, conver, maxiter,cor,doblets) {
-  N <- nrow(X)
-  m <- ncol(X)
-  
-  doublets_erec <- DoubletsEREC(X,r,cor,doblets)$doublets
-  doublets <- doublets_erec
-  
-  res <- Morgana(X,r,conver,maxiter, cor, doublets_erec)
-  
-  A <- res$L
-  RESCOV <- res$RESCOV
-  RESCOR <- round(res$RESCOR,3)
-  
-  results <- list(doublets=doublets, A=A, RESCOV=RESCOV, RESCOR=RESCOR)
-  
-  return(results)
+  list(doublets = doublets, A = res$L, RESCOV = res$RESCOV, RESCOR = res$RESCOR)
 }
-

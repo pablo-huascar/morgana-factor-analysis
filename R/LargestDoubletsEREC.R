@@ -1,139 +1,67 @@
-#########################################
-###                                   ###
-###      LargestDoubletsEREC          ### 
-###                                   ###
-#########################################
-
-# Goodness of Fit based on EREC
-# 
-# IN: 
-#   X           Matrix of observed data (N x m)
-#   r           Number of factors
-#   cor         1 <- covariance
-#               2 <- pearson
-#               3 <- polychoric
-# 
-# OUT: 
-#   doublets    Pairs of doublets to be free in the exploratory MORGANA
-#   nd          Number of pairs
-
-
-LargestDoubletsEREC <- function(X, r, cor){
-  
+#' Detect the largest doublets via the EREC index
+#'
+#' Computes the EREC index (Expected REsidual Correlation direct change;
+#' EPC1 in Ferrando, Hernandez-Dorado & Lorenzo-Seva, 2022) for every pair
+#' of variables and returns the pairs with the largest absolute values,
+#' limited by the Ledermann bound and the available degrees of freedom.
+#'
+#' This is a low-level function kept close to the original code released by
+#' the authors of the method; most users should call [solutionMEFA()]
+#' instead.
+#'
+#' @param X Numeric data matrix (N observations x m variables).
+#' @param r Number of factors.
+#' @param cor Dispersion matrix to analyse: 1 or `"covariance"`, 2 or
+#'   `"pearson"`, 3 or `"polychoric"`.
+#' @param R Optional pre-computed dispersion matrix. When supplied, `cor` is
+#'   only used to select the extraction variant and `R` is not recomputed
+#'   from `X` (useful to avoid repeating an expensive polychoric estimation).
+#'
+#' @return A list with:
+#'   \item{doublets}{Matrix (`nd` x 3) with columns `P1`, `P2` (variable
+#'     indices) and `EREC` (absolute EREC value), sorted by decreasing EREC.}
+#'   \item{nd}{Number of doublet slots evaluated.}
+#'   \item{EREC}{The full m x m matrix of EREC values.}
+#'
+#' @references
+#' Ferrando, P. J., Hernandez-Dorado, A., & Lorenzo-Seva, U. (2022).
+#' Detecting correlated residuals in exploratory factor analysis: New
+#' proposals and a comparison of procedures. *Structural Equation Modeling*,
+#' 29(4), 630-638. \doi{10.1080/10705511.2021.2004543}
+#'
+#' @seealso [solutionMEFA()], [DoubletsEREC()], [ParallelAnalysisEREC()]
+#' @export
+#' @examples
+#' \donttest{
+#' database <- as.matrix(read.table(
+#'   system.file("extdata", "database.dat", package = "morganafa")
+#' ))
+#' LargestDoubletsEREC(database, r = 2, cor = 2)$doublets
+#' }
+LargestDoubletsEREC <- function(X, r, cor, R = NULL) {
+  X <- as.matrix(X)
   N <- nrow(X)
   m <- ncol(X)
-  conver <- 0.00001
-  
-  Ledermann <- floor((2*m+1-sqrt(8*m+1))/2)
-  df <- 1/2 * ((m-r) * (m-r+1)) - m
-  # max number of doblets
-  nd <- Ledermann - r
-  if((df - nd) < 1){
-    nd <- df - 1
-  }
-  
-  R <- switch(cor, "1" = cov(X), "2" = cor(X), "3" = psych::polychoric(X)$rho)
-  
-  if(cor>1){
-    Ac <- my_minres_hc(R, r, conver, N)$Loadings
-  } else{
-    Ac <- as.matrix(my_minres(R, r, conver, N)$Loadings)
+  cor_code <- .morgana_cor_code(cor)
+
+  nd <- .erec_max_doublets(m, r)
+  if (nd < 1) {
+    stop(
+      "No doublet can be freed with m = ", m, " variables and r = ", r,
+      " factors: the Ledermann bound / degrees of freedom leave no room.",
+      call. = FALSE
+    )
   }
 
-  
-  PairOut <- zeros(2,1)
-  m_Core <- m-2
-  Core <- zeros(m_Core, 1)
-  RESFREE <- eye(m)
-  IPSIs <- c()
-  PPP <- matrix(0, nrow = 0, ncol = nrow(PairOut))
- 
-  d <- 0
-  columna <- fila<- c()
-  
-  for (i in 1:(m-1)) {
-    for (j in (i+1):m) {
-      PairOut <- matrix(0, nrow = 2, ncol = 1)
-      PairOut[1, 1] <- i
-      PairOut[2, 1] <- j
-      PPP <- rbind(PPP, t(PairOut))
-      k <- 1
-      Core <- integer(m-2)
-      for (h in 1:m) {
-        if (h != i && h != j) {
-          Core[k] <- h
-          k <- k + 1
-        }
-      }
+  R <- .morgana_dispersion(X, cor_code, R)
+  EREC <- .erec_matrix(R, r, N, cor_code)
 
-      RCore <- R[Core, Core]
-      if(cor>1){
-        Ac <- my_minres_hc(RCore, r, conver, N)$Loadings
-      } else{
-        Ac <- as.matrix(my_minres(RCore, r, conver, N)$Loadings)
-      }
-       
-      lam <- zeros(2,r)
-      for(h in 1:2){
-        SelExtension <- c(PairOut[h,1], t(Core))
-        R_Ex <- R[SelExtension, SelExtension]
-        vecr <- R_Ex[(2:(m_Core+1)), 1]
-        vecr <- as.matrix(vecr, ncol=1)
-        lam[h,] <- (solve(t(Ac)%*%Ac))%*%t(Ac)%*%vecr
-      }
-      
-      # Collection of IPSIS for correcting EPC1
-      Li <- rbind(Ac, lam)
-      Core <- as.matrix(Core)
-      temp <- as.matrix(order(c(Core, PairOut)))
-      Li <- Li[temp,]
-   
-      IPSIi <- as.matrix(diag(1, nrow=m)- diag(diag(Li%*%(t(Li)))))^(-0.5)
-      diagIPSIi <- t(as.matrix(diag(IPSIi)))
-      IPSIs<- rbind(IPSIs, diagIPSIi)      
+  ut <- which(upper.tri(EREC), arr.ind = TRUE)
+  erec_vals <- abs(EREC[ut])
+  J <- order(erec_vals, decreasing = TRUE)[1:nd]
 
-      # Residual covariances 
-      RESFREE[PairOut[1,1], PairOut[2,1]] <- R[PairOut[1,1], PairOut[2,1]]-crossprod(lam[1,], lam[2,])
-      RESFREE[PairOut[2,1], PairOut[1,1]] <- RESFREE[PairOut[1,1], PairOut[2,1]]
-      d <- d+1
-    }
-  }
+  doublets <- cbind(ut[J, 1], ut[J, 2], erec_vals[J])
+  colnames(doublets) <- c("P1", "P2", "EREC")
 
-  for(i in 1:nd){
-    for(j in 1:m){
-      if(IPSIs[i,j]< 0.001){
-        IPSIs[i,j] <- max(IPSIs)
-      } else{IPSIs[i,j] <- IPSIs[i,j]}
-    }
-  }
-  
-  IPSI <- diag(colmin(IPSIs))
-  EREC <- IPSI%*%RESFREE%*%IPSI
-  
-  total_pairs <- m*(m-1)/2
-  EREC_row <- c(total_pairs)
-  Pair <- zeros(total_pairs, 2)
-
-  h <- 1
-  for(i in 1:(m-1)){
-    for(j in (i+1):m){
-      Pair[h,1] <- i
-      Pair[h,2] <- j
-      EREC_row[h] <- abs(EREC[i,j])
-      h <- h+1
-    }
-  }
-  J <- order(EREC_row, decreasing = TRUE)
-  
-  doublets <- zeros(nd, 3)
-  for(i in 1:nd){
-    doublets[i, 1] <- Pair[J[i],1]
-    doublets[i, 2] <- Pair[J[i],2]
-    doublets[i, 3] <- EREC_row[J[i]]
-  }
-  
-  result <- list(doublets=doublets, nd=nd)
-  return(result)
-  
+  list(doublets = doublets, nd = nd, EREC = EREC)
 }
-

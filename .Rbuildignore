@@ -1,5 +1,14 @@
-^MORGANA 3$
-^\\.git$
-^\\.gitignore$
-^\\.Rhistory$
-^\\.\\.?Rcheck$
+^MORGANA 3 - apagar depois$
+^artigos$
+^\.Rlibs$
+^\.git$
+^\.gitignore$
+^\.github$
+^\.Rhistory$
+^\.\.?Rcheck$
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.md$
+^\.DS_Store$
+^cran-comments\.md$

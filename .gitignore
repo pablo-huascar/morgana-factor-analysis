@@ -51,3 +51,9 @@ rsconnect/
 .DS_Store
 
 MORGANA-3/
+# Installed-library artifacts inside the repo
+.Rlibs/
+
+# Reference material not to be published
+MORGANA 3 - apagar depois/
+artigos/
