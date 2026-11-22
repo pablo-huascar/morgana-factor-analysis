@@ -1,3 +1,10 @@
+# morganafa 0.1.3
+
+* With `cores > 1`, the progress bars of `ParallelAnalysisEREC()` and
+  `LoseferMorganaH0()` now advance after every round of replications (one
+  per worker) instead of every four rounds; the LOSEFER bar previously only
+  moved at the end. Results are unchanged.
+
 # morganafa 0.1.2
 
 All changes below leave the numerical results bit-for-bit identical to

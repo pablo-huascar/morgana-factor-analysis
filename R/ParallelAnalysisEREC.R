@@ -120,7 +120,9 @@ ParallelAnalysisEREC <- function(X, r, cor = 2, pa_reps = 500,
   # Monte Carlo: collect the nd ranked EREC values from each replication.
   # The null data are continuous, so Pearson correlations are used.
   pa_erec <- matrix(0, nrow = pa_reps, ncol = nd)
-  cli::cli_progress_bar("Parallel Analysis (EREC)", total = pa_reps)
+  cli::cli_progress_bar("Parallel Analysis (EREC)", total = pa_reps,
+    auto_terminate = FALSE
+  )
   if (is.null(cl)) {
     for (h in seq_len(pa_reps)) {
       Xi <- XP[sample.int(NP, N), ]

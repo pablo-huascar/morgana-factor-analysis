@@ -48,7 +48,9 @@
 # are returned in the order of `idx`.
 #' @noRd
 .pool_map <- function(cl, idx, worker, args, on_chunk = function(n) NULL) {
-  chunk_size <- 4L * length(cl)
+  # One task per worker per chunk, so progress is reported after every
+  # round of replications.
+  chunk_size <- length(cl)
   chunks <- split(seq_along(idx), ceiling(seq_along(idx) / chunk_size))
   out <- vector("list", length(idx))
   for (k in chunks) {

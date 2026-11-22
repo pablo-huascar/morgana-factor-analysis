@@ -69,7 +69,9 @@ LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo,
   NP <- 100000
   XP <- matrix(rnorm(NP * m), ncol = m) %*% L
 
-  cli::cli_progress_bar("LOSEFER H0 distribution", total = montecarlo)
+  cli::cli_progress_bar("LOSEFER H0 distribution", total = montecarlo,
+    auto_terminate = FALSE
+  )
   if (is.null(cl)) {
     DCHI <- numeric(montecarlo)
     h <- 1
@@ -89,10 +91,17 @@ LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo,
     parallel::clusterCall(cl, .set_pool, XP)
     args <- list(r = r, doblets = doblets, conver = conver)
     DCHI <- numeric(0)
+    pb_env <- environment()
     while (length(DCHI) < montecarlo) {
       need <- montecarlo - length(DCHI)
       idx <- lapply(seq_len(need), function(k) sample.int(NP, N))
-      c2 <- unlist(.pool_map(cl, idx, .h0_worker, args))
+      done <- length(DCHI)
+      c2 <- unlist(.pool_map(cl, idx, .h0_worker, args,
+        on_chunk = function(n) {
+          done <<- done + n
+          cli::cli_progress_update(set = min(done, montecarlo), .envir = pb_env)
+        }
+      ))
       DCHI <- c(DCHI, c2[c2 > 0.01])
       cli::cli_progress_update(set = length(DCHI))
     }
