@@ -13,7 +13,9 @@
 #' @param RESCOR Residual correlation matrix returned by the MORGANA fit.
 #' @param doblets Two-column matrix with the freed doublet pairs.
 #' @param N Number of observations.
-#' @param montecarlo Number of Monte Carlo replications (e.g. 5000).
+#' @param montecarlo Number of Monte Carlo replications (e.g. 5000). The
+#'   running time grows linearly with it; a progress bar is shown in
+#'   interactive sessions.
 #'
 #' @return A list with the location (`v`), scale (`vv`), normalising
 #'   coefficients (`a_n`, `b1_n`, `b2_n`) and Fleishman coefficients
@@ -52,6 +54,7 @@ LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo) {
 
   DCHI <- numeric(montecarlo)
   h <- 1
+  cli::cli_progress_bar("LOSEFER H0 distribution", total = montecarlo)
   while (h <= montecarlo) {
     Xi <- XP[sample.int(NP, N), ]
     Ri <- cor(Xi)
@@ -68,8 +71,10 @@ LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo) {
     if (c2i > 0.01) {
       DCHI[h] <- c2i
       h <- h + 1
+      cli::cli_progress_update()
     }
   }
+  cli::cli_progress_done()
 
   # Cube-root transform, trimming extreme replicates
   md <- median(DCHI)

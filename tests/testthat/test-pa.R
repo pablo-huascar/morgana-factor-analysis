@@ -17,3 +17,20 @@ test_that("ParallelAnalysisEREC returns thresholds per rank position", {
   expect_output(print(pa), "Parallel Analysis")
   expect_output(print(pa), "exceed the chance threshold")
 })
+
+test_that("reusing the observed EREC leaves the PA bit-for-bit identical", {
+  X <- morgana_example_data()
+  R <- stats::cor(X)
+
+  set.seed(99)
+  fresh <- morganafa:::.parallel_analysis_erec(X, 2, 2L, R, 10, 95)
+
+  obs <- LargestDoubletsEREC(X, 2, 2, R = R)
+  set.seed(99)
+  reused <- morganafa:::.parallel_analysis_erec(
+    X, 2, 2L, R, 10, 95,
+    obs_result = list(doublets = obs$doublets, nd = obs$nd)
+  )
+
+  expect_identical(reused, fresh)
+})

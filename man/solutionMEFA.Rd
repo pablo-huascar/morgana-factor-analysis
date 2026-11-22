@@ -85,6 +85,19 @@ been formally compared with the official implementation in the FACTOR
 program. See \code{help("morganafa-package")}.
 }
 
+\section{Computational cost}{
+
+Almost all of the running time is spent in the two Monte Carlo steps:
+the Parallel Analysis (\code{pa_reps} replications, each with m(m-1)/2 model
+fits, so it grows with the square of the number of items) and the
+LOSEFER H0 distribution (\code{montecarlo} replications). As a rough guide
+(Apple silicon laptop, 952 cases, 58 items, r = 3), the defaults take
+about 40 minutes for the Parallel Analysis and about 8 minutes for
+LOSEFER. While exploring, use smaller values (e.g. \code{pa_reps = 100},
+\code{montecarlo = 1000}) or \code{pa_reps = 0}, and keep the defaults for the
+final analysis. Progress bars are shown in interactive sessions.
+}
+
 \examples{
 \donttest{
 database <- as.matrix(read.table(

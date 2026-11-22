@@ -69,3 +69,19 @@ test_that("polychoric dispersion does not fork the session in Positron", {
   # ...and the user's option is restored afterwards.
   expect_equal(getOption("mc.cores"), 4L)
 })
+
+test_that("optimised MINRES engine is bit-for-bit identical to 0.1.1", {
+  X <- morgana_example_data()
+  R <- stats::cor(X)
+  N <- nrow(X)
+  set.seed(7)
+  for (h in 1:10) {
+    core <- setdiff(seq_len(ncol(R)), sample(ncol(R), 2))
+    for (hw in c(FALSE, TRUE)) {
+      expect_identical(
+        morganafa:::.minres_engine(R[core, core], 2, 1e-5, N, heywood = hw),
+        reference_minres_engine(R[core, core], 2, 1e-5, N, heywood = hw)
+      )
+    }
+  }
+})

@@ -24,17 +24,23 @@
   iter <- 0
 
   while (abs(gold - g) > conv) {
+    # Ai is A with row i zeroed. Instead of copying A for every row, keep a
+    # single working copy in step with A (zero row i before the update,
+    # write the new row back after). The arithmetic is unchanged, so the
+    # results are bit-for-bit identical to the row-by-row copy; calling
+    # solve.default() directly also skips S3 dispatch.
+    Ai <- A
     for (i in 1:n) {
-      Ai <- A
       Ai[i, ] <- 0
       ci <- Co[, i, drop = FALSE]
-      ai <- solve(crossprod(Ai), crossprod(Ai, ci))
+      ai <- solve.default(crossprod(Ai), crossprod(Ai, ci))
 
       if (heywood && sum(ai^2) > 1) {
         ai <- BERGE(Ai, ci)
       }
 
       A[i, ] <- ai
+      Ai[i, ] <- ai
     }
     gold <- g
     g <- loss(A)

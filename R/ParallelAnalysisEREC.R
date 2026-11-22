@@ -9,8 +9,19 @@
 #' A doublet is flagged as *significant* when its observed EREC exceeds the
 #' PA cutoff at the same rank position.
 #'
-#' Each replication requires m*(m-1)/2 model fits, so this can be slow for
-#' large m; consider `pa_reps = 100` for initial explorations.
+#' @section Computational cost:
+#' Each replication refits the model once per item pair, i.e.
+#' m(m-1)/2 MINRES fits, so the running time grows with the square of the
+#' number of items and linearly with `pa_reps`. As a rough guide (Apple
+#' silicon laptop, r = 3): one replication takes about 0.2 s with 20 items
+#' and about 5 s with 58 items, so the default 500 replications take
+#' minutes to most of an hour. Use e.g. `pa_reps = 100` while exploring
+#' and keep the default for the final analysis. A progress bar is shown in
+#' interactive sessions.
+#'
+#' The dispersion matrix of the observed data is computed only once; pass
+#' it through `R` when calling several functions on the same data (this
+#' matters most for polychoric correlations).
 #'
 #' @inheritParams LargestDoubletsEREC
 #' @param pa_reps Number of Monte Carlo replications (default 500).
@@ -40,15 +51,27 @@
 ParallelAnalysisEREC <- function(X, r, cor = 2, pa_reps = 500,
                                  percentile = 95, R = NULL) {
   X <- .morgana_check_data(X, arg = "X")
+  cor_code <- .morgana_cor_code(cor)
+  R <- .morgana_dispersion(X, cor_code, R)
+  .parallel_analysis_erec(X, r, cor_code, R, pa_reps, percentile)
+}
+
+# Workhorse of ParallelAnalysisEREC(). `obs_result` lets callers that have
+# already run LargestDoubletsEREC() on the same X, r, cor and R (e.g.
+# solutionMEFA() via MorganaEFA()) pass it in instead of recomputing it.
+# That computation is deterministic, so reusing it leaves the results and
+# the random-number stream unchanged.
+#' @noRd
+.parallel_analysis_erec <- function(X, r, cor_code, R, pa_reps, percentile,
+                                    obs_result = NULL) {
   N <- nrow(X)
   m <- ncol(X)
   conver <- 0.00001
-  cor_code <- .morgana_cor_code(cor)
-
-  R <- .morgana_dispersion(X, cor_code, R)
 
   # Observed EREC and the number of doublet slots
-  obs_result <- LargestDoubletsEREC(X, r, cor_code, R = R)
+  if (is.null(obs_result)) {
+    obs_result <- LargestDoubletsEREC(X, r, cor_code, R = R)
+  }
   nd <- obs_result$nd
   obs_doublets <- obs_result$doublets
 
@@ -77,10 +100,13 @@ ParallelAnalysisEREC <- function(X, r, cor = 2, pa_reps = 500,
   # Monte Carlo: collect the nd ranked EREC values from each replication.
   # The null data are continuous, so Pearson correlations are used.
   pa_erec <- matrix(0, nrow = pa_reps, ncol = nd)
+  cli::cli_progress_bar("Parallel Analysis (EREC)", total = pa_reps)
   for (h in seq_len(pa_reps)) {
     Xi <- XP[sample.int(NP, N), ]
     pa_erec[h, ] <- LargestDoubletsEREC(Xi, r, 2)$doublets[, 3]
+    cli::cli_progress_update()
   }
+  cli::cli_progress_done()
 
   pa_thresholds <- apply(pa_erec, 2, quantile, probs = percentile / 100)
 

@@ -120,10 +120,34 @@ Um doublet é considerado *significativo* quando seu EREC observado supera o
 limiar da Análise Paralela na mesma posição de ranque (seção *"Reference
 values and upper bounds"* de Ferrando et al., 2022).
 
-> **Nota de desempenho:** cada réplica da PA exige m·(m−1)/2 ajustes de
-> modelo. Para muitos itens (m > 20), considere `pa_reps = 100` em
-> explorações iniciais. Correlações policóricas também elevam bastante o
-> custo computacional.
+## Tempo de processamento
+
+Quase todo o tempo de `solutionMEFA()` vai para duas simulações Monte Carlo:
+
+* **Análise Paralela** (`pa_reps`, padrão 500): cada réplica exige
+  m·(m−1)/2 ajustes de modelo, então o tempo cresce com o **quadrado do
+  número de itens**.
+* **Distribuição H0 do LOSEFER** (`montecarlo`, padrão 5000).
+
+Referência aproximada (notebook Apple silicon, 952 casos, 58 itens, r = 3):
+cerca de 40 min para a PA e 8 min para o LOSEFER com os valores padrão. Com
+20 itens, cerca de 1,5 min no total. Barras de progresso são exibidas em
+sessões interativas.
+
+Recomendações:
+
+* Em explorações, use valores menores (`pa_reps = 100`,
+  `montecarlo = 1000`, ou `pa_reps = 0` para pular a PA); mantenha os
+  valores padrão na análise final.
+* A matriz policórica é calculada só uma vez por chamada, mas cada função
+  chamada separadamente a recalcula. Ao usar várias funções nos mesmos
+  dados, calcule-a uma vez e passe-a pelo argumento `R`:
+
+```r
+R_poly <- psych::polychoric(dados)$rho
+LargestDoubletsEREC(dados, r = 3, cor = 3, R = R_poly)
+ParallelAnalysisEREC(dados, r = 3, cor = 3, R = R_poly)
+```
 
 ## Funções
 
@@ -183,5 +207,5 @@ Se você usar este pacote, cite **os artigos originais dos autores do método**
 (referências acima). Para citar o pacote em si:
 
 > Aragão Pinheiro, F. P. H. (2026). *morganafa: MORGANA factor analysis with
-> correlated residuals* (implementação não oficial em R). R package version 0.1.1.
+> correlated residuals* (implementação não oficial em R). R package version 0.1.2.
 > <https://github.com/pablo-huascar/morgana-factor-analysis>

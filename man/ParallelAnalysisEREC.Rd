@@ -42,10 +42,23 @@ Ferrando, Hernandez-Dorado & Lorenzo-Seva, 2022).
 \details{
 A doublet is flagged as \emph{significant} when its observed EREC exceeds the
 PA cutoff at the same rank position.
-
-Each replication requires m*(m-1)/2 model fits, so this can be slow for
-large m; consider \code{pa_reps = 100} for initial explorations.
 }
+\section{Computational cost}{
+
+Each replication refits the model once per item pair, i.e.
+m(m-1)/2 MINRES fits, so the running time grows with the square of the
+number of items and linearly with \code{pa_reps}. As a rough guide (Apple
+silicon laptop, r = 3): one replication takes about 0.2 s with 20 items
+and about 5 s with 58 items, so the default 500 replications take
+minutes to most of an hour. Use e.g. \code{pa_reps = 100} while exploring
+and keep the default for the final analysis. A progress bar is shown in
+interactive sessions.
+
+The dispersion matrix of the observed data is computed only once; pass
+it through \code{R} when calling several functions on the same data (this
+matters most for polychoric correlations).
+}
+
 \examples{
 \donttest{
 database <- as.matrix(read.table(

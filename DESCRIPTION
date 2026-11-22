@@ -1,7 +1,7 @@
 Package: morganafa
 Type: Package
 Title: MORGANA Factor Analysis with Correlated Residuals
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: person(given = "Francisco Pablo Huascar",
                   family = "Aragão Pinheiro",
                   role = c("aut", "cre"),
@@ -26,6 +26,7 @@ BugReports: https://github.com/pablo-huascar/morgana-factor-analysis/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
+    cli,
     GPArotation,
     psych,
     stats,

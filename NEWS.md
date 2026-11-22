@@ -1,3 +1,27 @@
+# morganafa 0.1.2
+
+All changes below leave the numerical results bit-for-bit identical to
+0.1.1 (checked against frozen reference outputs and a frozen copy of the
+previous MINRES engine in the tests).
+
+## Performance
+
+* MINRES (`my_minres()` / `my_minres_hc()`, used in every EREC and PA
+  fit) no longer copies the loading matrix for each row update and calls
+  `solve.default()` directly. About 15-20% faster.
+* `solutionMEFA()` reuses the observed EREC computed by `MorganaEFA()`
+  in the Parallel Analysis instead of recomputing it.
+
+## User interface and documentation
+
+* `ParallelAnalysisEREC()` and `LoseferMorganaH0()` (and therefore
+  `solutionMEFA()` and `solutionMCFA()`) show progress bars in interactive
+  sessions (via cli, now in Imports).
+* New "Computational cost" sections in `?ParallelAnalysisEREC` and
+  `?solutionMEFA`, and a "Tempo de processamento" section in the README,
+  with timing guidance and advice on `pa_reps`, `montecarlo` and passing a
+  precomputed matrix through `R`.
+
 # morganafa 0.1.1
 
 ## Bug fixes

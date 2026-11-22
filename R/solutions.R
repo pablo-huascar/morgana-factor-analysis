@@ -13,6 +13,17 @@
 #' been formally compared with the official implementation in the FACTOR
 #' program. See `help("morganafa-package")`.
 #'
+#' @section Computational cost:
+#' Almost all of the running time is spent in the two Monte Carlo steps:
+#' the Parallel Analysis (`pa_reps` replications, each with m(m-1)/2 model
+#' fits, so it grows with the square of the number of items) and the
+#' LOSEFER H0 distribution (`montecarlo` replications). As a rough guide
+#' (Apple silicon laptop, 952 cases, 58 items, r = 3), the defaults take
+#' about 40 minutes for the Parallel Analysis and about 8 minutes for
+#' LOSEFER. While exploring, use smaller values (e.g. `pa_reps = 100`,
+#' `montecarlo = 1000`) or `pa_reps = 0`, and keep the defaults for the
+#' final analysis. Progress bars are shown in interactive sessions.
+#'
 #' @param data Numeric data matrix or data frame (observations x items).
 #'   Column names are used as item names in all outputs.
 #' @param r Number of factors to extract.
@@ -112,8 +123,10 @@ solutionMEFA <- function(data,
 
   pa <- NULL
   if (pa_reps > 0) {
-    pa <- ParallelAnalysisEREC(X, r, cor = cor_code, pa_reps = pa_reps,
-                               percentile = pa_percentile, R = R)
+    # Reuse the observed EREC already computed by MorganaEFA()
+    obs <- list(doublets = doublets, nd = .erec_max_doublets(ncol(X), r))
+    pa <- .parallel_analysis_erec(X, r, cor_code, R, pa_reps,
+                                  pa_percentile, obs_result = obs)
   }
 
   .morgana_solution(

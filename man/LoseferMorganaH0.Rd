@@ -15,7 +15,9 @@ LoseferMorganaH0(A, RESCOR, doblets, N, montecarlo)
 
 \item{N}{Number of observations.}
 
-\item{montecarlo}{Number of Monte Carlo replications (e.g. 5000).}
+\item{montecarlo}{Number of Monte Carlo replications (e.g. 5000). The
+running time grows linearly with it; a progress bar is shown in
+interactive sessions.}
 }
 \value{
 A list with the location (\code{v}), scale (\code{vv}), normalising
