@@ -1,3 +1,17 @@
+# morganafa 0.1.1
+
+## Bug fixes
+
+* Polychoric correlations (`cor = 3` / `"polychoric"`) no longer fail in
+  Positron with "Can't fork the R session". `psych::polychoric()`
+  parallelises via `parallel::mcmapply()`, which forks the R session, and
+  Positron forbids forking. When running inside Positron, morganafa now
+  computes the polychoric matrix with `mc.cores = 1` (restored afterwards).
+  Other front-ends keep `psych`'s default parallel behaviour. Affects every
+  function that estimates the polychoric matrix internally
+  (`LargestDoubletsEREC()`, `DoubletsEREC()`, `MorganaEFA()`,
+  `solutionMEFA()`, `solutionMCFA()`, etc.).
+
 # morganafa 0.1.0
 
 First public (GitHub) release. Unofficial R implementation of the MORGANA /

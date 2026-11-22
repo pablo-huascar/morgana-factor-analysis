@@ -58,13 +58,18 @@ Statistics - Simulation and Computation}.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/pablo-huascar/morganafa}
-  \item Report bugs at \url{https://github.com/pablo-huascar/morganafa/issues}
+  \item \url{https://github.com/pablo-huascar/morgana-factor-analysis}
+  \item Report bugs at \url{https://github.com/pablo-huascar/morgana-factor-analysis/issues}
 }
 
 }
 \author{
 \strong{Maintainer}: Francisco Pablo Huascar Aragão Pinheiro \email{pablohuascar@gmail.com}
+
+Authors:
+\itemize{
+  \item Francisco Pablo Huascar Aragão Pinheiro \email{pablohuascar@gmail.com}
+}
 
 }
 \keyword{internal}

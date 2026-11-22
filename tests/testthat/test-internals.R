@@ -38,3 +38,34 @@ test_that("minres with Heywood protection keeps communalities admissible", {
   h2 <- rowSums(as.matrix(fit$Loadings)^2)
   expect_true(all(h2 <= 1 + 1e-8))
 })
+
+test_that("polychoric dispersion does not fork the session in Positron", {
+  skip_if_not_installed("psych")
+  set.seed(1)
+  X <- matrix(sample(1:5, 200 * 4, replace = TRUE), ncol = 4)
+
+  withr_env <- Sys.getenv("POSITRON", unset = NA)
+  Sys.setenv(POSITRON = "1")
+  on.exit(
+    if (is.na(withr_env)) Sys.unsetenv("POSITRON") else Sys.setenv(POSITRON = withr_env),
+    add = TRUE
+  )
+  old <- options(mc.cores = 4L)
+  on.exit(options(old), add = TRUE)
+
+  # Inside the call mc.cores must be forced to 1 (no fork)...
+  seen <- NULL
+  testthat::local_mocked_bindings(
+    polychoric = function(x, ...) {
+      seen <<- getOption("mc.cores")
+      list(rho = stats::cor(x))
+    },
+    .package = "psych"
+  )
+  R <- morganafa:::.morgana_dispersion(X, cor = 3)
+
+  expect_equal(seen, 1L)
+  expect_equal(dim(R), c(4, 4))
+  # ...and the user's option is restored afterwards.
+  expect_equal(getOption("mc.cores"), 4L)
+})

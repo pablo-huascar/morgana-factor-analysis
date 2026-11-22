@@ -134,8 +134,20 @@ PartCor <- function(R) {
   switch(code,
     cov(X),
     cor(X),
-    psych::polychoric(X)$rho
+    .morgana_polychoric(X)
   )
+}
+
+# psych::polychoric() parallelises via parallel::mcmapply(), which forks the
+# R session. Some front-ends (e.g. Positron) forbid forking, so there we
+# force a single core; mclapply() then falls back to a plain lapply().
+#' @noRd
+.morgana_polychoric <- function(X) {
+  if (nzchar(Sys.getenv("POSITRON"))) {
+    old <- options(mc.cores = 1L)
+    on.exit(options(old), add = TRUE)
+  }
+  psych::polychoric(X)$rho
 }
 
 # Validate/standardise the input data matrix

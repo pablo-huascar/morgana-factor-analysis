@@ -183,5 +183,5 @@ Se você usar este pacote, cite **os artigos originais dos autores do método**
 (referências acima). Para citar o pacote em si:
 
 > Aragão Pinheiro, F. P. H. (2026). *morganafa: MORGANA factor analysis with
-> correlated residuals* (implementação não oficial em R). R package version 0.1.0.
+> correlated residuals* (implementação não oficial em R). R package version 0.1.1.
 > <https://github.com/pablo-huascar/morgana-factor-analysis>
