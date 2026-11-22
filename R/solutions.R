@@ -46,6 +46,12 @@
 #' @param pa_percentile Percentile for the PA cutoffs (default 95).
 #' @param conver Convergence criterion for the MORGANA iterations.
 #' @param maxiter Maximum number of MORGANA iterations.
+#' @param cores Number of parallel worker processes for the Monte Carlo
+#'   steps (LOSEFER and, in `solutionMEFA()`, the Parallel Analysis). `1`
+#'   (default) runs sequentially. Results are identical to `cores = 1` with
+#'   the same seed; see the "Parallel execution" section of
+#'   [ParallelAnalysisEREC()]. The default can be set once per session with
+#'   `options(morganafa.cores = 8)`.
 #'
 #' @return An object of class `morgana_efa`. Its main components are
 #'   [tibble][tibble::tibble]s, ready for further processing:
@@ -98,7 +104,12 @@ solutionMEFA <- function(data,
                          pa_reps = 500,
                          pa_percentile = 95,
                          conver = 0.0001,
-                         maxiter = 500) {
+                         maxiter = 500,
+                         cores = getOption("morganafa.cores", 1L)) {
+  cl <- .morgana_cluster(cores)
+  if (!is.null(cl)) {
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+  }
   X <- .morgana_check_data(data)
   cor_code <- .morgana_cor_code(cor)
   item_names <- colnames(X)
@@ -112,8 +123,8 @@ solutionMEFA <- function(data,
   A <- posit(extracted$A)
   doublets <- extracted$doublets
 
-  h0 <- LoseferMorganaH0(A, extracted$RESCOR,
-                         doublets[, 1:2, drop = FALSE], N, montecarlo)
+  h0 <- .losefer_h0(A, extracted$RESCOR,
+                    doublets[, 1:2, drop = FALSE], N, montecarlo, cl)
   fit <- LoseferMorgana(
     R, A, N, extracted$RESCOR, nrow(doublets),
     h0$v, h0$vv, h0$a_n, h0$b1_n, h0$b2_n,
@@ -126,7 +137,7 @@ solutionMEFA <- function(data,
     # Reuse the observed EREC already computed by MorganaEFA()
     obs <- list(doublets = doublets, nd = .erec_max_doublets(ncol(X), r))
     pa <- .parallel_analysis_erec(X, r, cor_code, R, pa_reps,
-                                  pa_percentile, obs_result = obs)
+                                  pa_percentile, obs_result = obs, cl = cl)
   }
 
   .morgana_solution(
@@ -183,7 +194,12 @@ solutionMCFA <- function(data,
                          item_labels = NULL,
                          montecarlo = 5000,
                          conver = 0.0001,
-                         maxiter = 500) {
+                         maxiter = 500,
+                         cores = getOption("morganafa.cores", 1L)) {
+  cl <- .morgana_cluster(cores)
+  if (!is.null(cl)) {
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+  }
   X <- .morgana_check_data(data)
   cor_code <- .morgana_cor_code(cor)
   item_names <- colnames(X)
@@ -199,8 +215,8 @@ solutionMCFA <- function(data,
   A <- posit(extracted$A)
   doublets_out <- extracted$doublets
 
-  h0 <- LoseferMorganaH0(A, extracted$RESCOR,
-                         doublets_out[, 1:2, drop = FALSE], N, montecarlo)
+  h0 <- .losefer_h0(A, extracted$RESCOR,
+                    doublets_out[, 1:2, drop = FALSE], N, montecarlo, cl)
   fit <- LoseferMorgana(
     R, A, N, extracted$RESCOR, nrow(doublets_out),
     h0$v, h0$vv, h0$a_n, h0$b1_n, h0$b2_n,

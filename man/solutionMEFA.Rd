@@ -14,7 +14,8 @@ solutionMEFA(
   pa_reps = 500,
   pa_percentile = 95,
   conver = 1e-04,
-  maxiter = 500
+  maxiter = 500,
+  cores = getOption("morganafa.cores", 1L)
 )
 }
 \arguments{
@@ -49,6 +50,13 @@ thresholds (default 500). Use \code{0} to skip the Parallel Analysis.}
 \item{conver}{Convergence criterion for the MORGANA iterations.}
 
 \item{maxiter}{Maximum number of MORGANA iterations.}
+
+\item{cores}{Number of parallel worker processes for the Monte Carlo
+steps (LOSEFER and, in \code{solutionMEFA()}, the Parallel Analysis). \code{1}
+(default) runs sequentially. Results are identical to \code{cores = 1} with
+the same seed; see the "Parallel execution" section of
+\code{\link[=ParallelAnalysisEREC]{ParallelAnalysisEREC()}}. The default can be set once per session with
+\code{options(morganafa.cores = 8)}.}
 }
 \value{
 An object of class \code{morgana_efa}. Its main components are

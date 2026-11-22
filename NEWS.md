@@ -12,6 +12,17 @@ previous MINRES engine in the tests).
 * `solutionMEFA()` reuses the observed EREC computed by `MorganaEFA()`
   in the Parallel Analysis instead of recomputing it.
 
+## Parallel execution
+
+* New `cores` argument in `ParallelAnalysisEREC()`, `LoseferMorganaH0()`,
+  `solutionMEFA()` and `solutionMCFA()` (default `1`, sequential; the
+  default can be set with `options(morganafa.cores = n)`). Replications run
+  on fresh R worker processes (PSOCK, no forking, so it works in Positron
+  and on Windows). All random draws stay in the main process, in the
+  sequential order, so results are identical to `cores = 1` with the same
+  seed, whatever the number of cores. With 58 items the Parallel Analysis
+  ran about 5x faster on 9 cores.
+
 ## User interface and documentation
 
 * `ParallelAnalysisEREC()` and `LoseferMorganaH0()` (and therefore

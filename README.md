@@ -136,6 +136,14 @@ sessões interativas.
 
 Recomendações:
 
+* **Use vários cores** com o argumento `cores` (ou defina uma vez por
+  sessão com `options(morganafa.cores = 8)`). Os resultados são
+  **idênticos** aos da execução sequencial com a mesma `set.seed()`,
+  qualquer que seja o número de cores. Com 58 itens e 9 cores, a PA ficou
+  cerca de 5× mais rápida (≈ 7 min em vez de ≈ 37 min). Funciona no
+  Positron, no RStudio e no Windows. Iniciar os processos leva alguns
+  segundos, então só compensa em execuções longas.
+
 * Em explorações, use valores menores (`pa_reps = 100`,
   `montecarlo = 1000`, ou `pa_reps = 0` para pular a PA); mantenha os
   valores padrão na análise final.

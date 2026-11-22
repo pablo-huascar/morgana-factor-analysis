@@ -27,6 +27,7 @@ Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     cli,
+    parallel,
     GPArotation,
     psych,
     stats,

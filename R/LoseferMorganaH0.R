@@ -16,6 +16,11 @@
 #' @param montecarlo Number of Monte Carlo replications (e.g. 5000). The
 #'   running time grows linearly with it; a progress bar is shown in
 #'   interactive sessions.
+#' @param cores Number of parallel worker processes for the Monte Carlo
+#'   replications. `1` (default) runs sequentially. With more cores the
+#'   results are identical to the sequential run with the same seed (see
+#'   [ParallelAnalysisEREC()] for details). The default can be set once per
+#'   session with `options(morganafa.cores = 8)`.
 #'
 #' @return A list with the location (`v`), scale (`vv`), normalising
 #'   coefficients (`a_n`, `b1_n`, `b2_n`) and Fleishman coefficients
@@ -24,7 +29,19 @@
 #' @inherit LargestDoubletsEREC references
 #' @seealso [LoseferMorgana()], [solutionMEFA()]
 #' @export
-LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo) {
+LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo,
+                             cores = getOption("morganafa.cores", 1L)) {
+  cl <- .morgana_cluster(cores)
+  if (!is.null(cl)) {
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+  }
+  .losefer_h0(A, RESCOR, doblets, N, montecarlo, cl)
+}
+
+# Workhorse of LoseferMorganaH0(); `cl` is a PSOCK cluster or NULL
+# (sequential), so solutionMEFA() can share one cluster across steps.
+#' @noRd
+.losefer_h0 <- function(A, RESCOR, doblets, N, montecarlo, cl = NULL) {
   conver <- 0.0001
 
   m <- nrow(A)
@@ -52,26 +69,32 @@ LoseferMorganaH0 <- function(A, RESCOR, doblets, N, montecarlo) {
   NP <- 100000
   XP <- matrix(rnorm(NP * m), ncol = m) %*% L
 
-  DCHI <- numeric(montecarlo)
-  h <- 1
   cli::cli_progress_bar("LOSEFER H0 distribution", total = montecarlo)
-  while (h <= montecarlo) {
-    Xi <- XP[sample.int(NP, N), ]
-    Ri <- cor(Xi)
-
-    result <- fufa1(Xi, r, doblets, conver, 2, R = Ri)
-    Ai <- result$L
-    RESCORi <- result$RESCOR
-
-    AAi <- Ai %*% t(Ai)
-    PSIi <- sqrt(abs(eye(m) - diag(diag(AAi))))
-    RESi <- Ri - (AAi + PSIi %*% (RESCORi - eye(m)) %*% PSIi)
-
-    c2i <- sum(RESi[upper.tri(RESi)]^2) * (N - 1)
-    if (c2i > 0.01) {
-      DCHI[h] <- c2i
-      h <- h + 1
-      cli::cli_progress_update()
+  if (is.null(cl)) {
+    DCHI <- numeric(montecarlo)
+    h <- 1
+    while (h <= montecarlo) {
+      Xi <- XP[sample.int(NP, N), ]
+      c2i <- .h0_c2(Xi, r, doblets, conver)
+      if (c2i > 0.01) {
+        DCHI[h] <- c2i
+        h <- h + 1
+        cli::cli_progress_update()
+      }
+    }
+  } else {
+    # Draw exactly as many samples as are still needed, in the sequential
+    # order. Every one of them would also be drawn by the sequential loop,
+    # so the accepted statistics and the final RNG state are the same.
+    parallel::clusterCall(cl, .set_pool, XP)
+    args <- list(r = r, doblets = doblets, conver = conver)
+    DCHI <- numeric(0)
+    while (length(DCHI) < montecarlo) {
+      need <- montecarlo - length(DCHI)
+      idx <- lapply(seq_len(need), function(k) sample.int(NP, N))
+      c2 <- unlist(.pool_map(cl, idx, .h0_worker, args))
+      DCHI <- c(DCHI, c2[c2 > 0.01])
+      cli::cli_progress_update(set = length(DCHI))
     }
   }
   cli::cli_progress_done()

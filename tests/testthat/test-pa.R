@@ -34,3 +34,40 @@ test_that("reusing the observed EREC leaves the PA bit-for-bit identical", {
 
   expect_identical(reused, fresh)
 })
+
+test_that("parallel execution gives results identical to sequential", {
+  skip_on_cran()
+  # Workers load the installed morganafa; skip if it is not this version.
+  installed <- tryCatch(
+    read.dcf(file.path(
+      find.package("morganafa", lib.loc = .libPaths()), "DESCRIPTION"
+    ))[, "Version"],
+    error = function(e) NA_character_
+  )
+  skip_if_not(
+    identical(unname(installed), as.character(utils::packageVersion("morganafa"))),
+    "installed morganafa differs from the version under test"
+  )
+  X <- morgana_example_data()
+
+  set.seed(11)
+  pa_seq <- ParallelAnalysisEREC(X, r = 2, pa_reps = 12, cores = 1)
+  after_seq <- stats::runif(1)
+  set.seed(11)
+  pa_par <- ParallelAnalysisEREC(X, r = 2, pa_reps = 12, cores = 2)
+  after_par <- stats::runif(1)
+  expect_identical(pa_par, pa_seq)
+  expect_identical(after_par, after_seq)
+
+  set.seed(12)
+  efa_seq <- solutionMEFA(X, r = 2, montecarlo = 60, pa_reps = 6, cores = 1)
+  set.seed(12)
+  efa_par <- solutionMEFA(X, r = 2, montecarlo = 60, pa_reps = 6, cores = 2)
+  expect_identical(efa_par, efa_seq)
+})
+
+test_that("cores is validated", {
+  X <- morgana_example_data()
+  expect_error(ParallelAnalysisEREC(X, r = 2, pa_reps = 2, cores = 0), "cores")
+  expect_error(ParallelAnalysisEREC(X, r = 2, pa_reps = 2, cores = 1.5), "cores")
+})

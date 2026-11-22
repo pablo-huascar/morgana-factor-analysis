@@ -4,7 +4,14 @@
 \alias{LoseferMorganaH0}
 \title{Empirical H0 distribution for the LOSEFER correction}
 \usage{
-LoseferMorganaH0(A, RESCOR, doblets, N, montecarlo)
+LoseferMorganaH0(
+  A,
+  RESCOR,
+  doblets,
+  N,
+  montecarlo,
+  cores = getOption("morganafa.cores", 1L)
+)
 }
 \arguments{
 \item{A}{Loading matrix (m x r), unrotated.}
@@ -18,6 +25,12 @@ LoseferMorganaH0(A, RESCOR, doblets, N, montecarlo)
 \item{montecarlo}{Number of Monte Carlo replications (e.g. 5000). The
 running time grows linearly with it; a progress bar is shown in
 interactive sessions.}
+
+\item{cores}{Number of parallel worker processes for the Monte Carlo
+replications. \code{1} (default) runs sequentially. With more cores the
+results are identical to the sequential run with the same seed (see
+\code{\link[=ParallelAnalysisEREC]{ParallelAnalysisEREC()}} for details). The default can be set once per
+session with \code{options(morganafa.cores = 8)}.}
 }
 \value{
 A list with the location (\code{v}), scale (\code{vv}), normalising

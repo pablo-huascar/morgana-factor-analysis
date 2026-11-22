@@ -4,7 +4,15 @@
 \alias{ParallelAnalysisEREC}
 \title{Parallel Analysis reference thresholds for the EREC index}
 \usage{
-ParallelAnalysisEREC(X, r, cor = 2, pa_reps = 500, percentile = 95, R = NULL)
+ParallelAnalysisEREC(
+  X,
+  r,
+  cor = 2,
+  pa_reps = 500,
+  percentile = 95,
+  R = NULL,
+  cores = getOption("morganafa.cores", 1L)
+)
 }
 \arguments{
 \item{X}{Numeric data matrix (N observations x m variables).}
@@ -21,6 +29,10 @@ ParallelAnalysisEREC(X, r, cor = 2, pa_reps = 500, percentile = 95, R = NULL)
 \item{R}{Optional pre-computed dispersion matrix. When supplied, \code{cor} is
 only used to select the extraction variant and \code{R} is not recomputed
 from \code{X} (useful to avoid repeating an expensive polychoric estimation).}
+
+\item{cores}{Number of parallel worker processes. \code{1} (default) runs
+sequentially; see the "Parallel execution" section. The default can be
+set once per session with \code{options(morganafa.cores = 8)}.}
 }
 \value{
 An object of class \code{morgana_pa}: a list with
@@ -53,6 +65,20 @@ and about 5 s with 58 items, so the default 500 replications take
 minutes to most of an hour. Use e.g. \code{pa_reps = 100} while exploring
 and keep the default for the final analysis. A progress bar is shown in
 interactive sessions.
+}
+
+\section{Parallel execution}{
+
+With \code{cores > 1} the replications are distributed over that many fresh R
+worker processes (a PSOCK cluster; no forking, so it works in Positron,
+RStudio and on Windows). All random draws are still made in the main
+process, in the same order as the sequential loop, and only the
+deterministic model fits run on the workers. Results are therefore
+\strong{identical} to \code{cores = 1} with the same \code{\link[=set.seed]{set.seed()}}, whatever the
+number of cores. Starting the workers takes a few seconds, so it only
+pays off for long runs. A good choice is the number of physical cores
+minus one (see \code{\link[parallel:detectCores]{parallel::detectCores()}}). The workers load the
+installed version of morganafa.
 
 The dispersion matrix of the observed data is computed only once; pass
 it through \code{R} when calling several functions on the same data (this
