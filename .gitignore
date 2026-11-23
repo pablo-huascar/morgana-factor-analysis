@@ -57,3 +57,8 @@ MORGANA-3/
 # Reference material not to be published
 MORGANA 3 - apagar depois/
 artigos/
+
+# Private research data kept at the project root (never commit)
+/*.dat
+/*.csv
+/*.txt
